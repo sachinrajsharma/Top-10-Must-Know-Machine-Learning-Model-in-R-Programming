@@ -1,0 +1,149 @@
+---
+title: "Logistic Regression Model in R"
+author: "Sachin Sharma"
+date: "12/27/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library (readr)
+library(RCurl)
+library(curl)
+library(tidyverse)
+library(ggplot2)
+
+urlfile = "https://raw.githubusercontent.com/bkrai/R-files-from-YouTube/main/binary.csv"
+
+
+mydata<-read_csv(url(urlfile))
+
+head(mydata)
+
+```
+
+
+```{r}
+str(mydata)
+```
+
+# Lets change admit and rank into categorical values 
+
+
+```{r}
+mydata$admit <- as.factor(mydata$admit)
+mydata$rank <- as.factor(mydata$rank)
+
+str(mydata)
+
+
+```
+# now we can see that both variables have changed to factor 
+
+# now lets do partition of data set uring caTools 
+
+```{r}
+
+library(caTools)
+set.seed(1234)
+
+split <- sample.split(mydata$admit,SplitRatio = 0.8)
+
+sample_train <- subset(mydata,split ==T)
+sample_test <- subset(mydata,split==F)
+
+head(sample_test)
+
+```
+
+# Lets create Logistic regression model 
+
+```{r}
+
+glm <- glm(admit~gre+gpa + rank, data = sample_train,
+           family = "binomial")
+summary(glm)
+
+```
+# Now lets run the code by removing gpa, as it is not statistically significant
+
+
+
+```{r}
+
+finalmodel <- glm(admit~gre+rank, data = sample_train,
+           family = "binomial")
+summary(finalmodel)
+
+
+```
+
+# Lets do some prediction 
+
+```{r}
+
+p1 <- predict(finalmodel,sample_train,type = "response")
+
+head(p1)
+```
+
+```{r}
+head(sample_train)
+```
+
+# Misclassification error - train data 
+
+```{r}
+
+pred1 <- ifelse(p1>0.5,1,0)
+
+```
+
+
+# Creating the confusion matrix 
+
+```{r}
+tab1 <- table(pred1,sample_train$admit)
+
+# here 89+10 is missclassification error of our model in train data 
+
+1-sum(diag(tab1))/sum(tab1)
+```
+## now checking the missclassification error in the test data : 
+
+```{r}
+
+p2 <- predict(finalmodel,sample_test, type = "response")
+
+
+
+
+
+#tab2
+
+
+pred2<- ifelse(p2>0.5,1,0)
+
+
+tab2 <- table(pred2,sample_test$admit)
+#tab2
+
+```
+
+## Missclassification error : 
+
+```{r}
+1-sum(diag(tab2))/sum(tab2)
+
+```
+
+# Goodness of fit : 
+
+```{r}
+with(finalmodel,pchisq(null.deviance-deviance, df.null-df.residual,lower.tail = F))
+```
+
+# Here we get this p values , which is very less = 0.000050, hence we can say our confidence level is high that this model is statistically significant...
